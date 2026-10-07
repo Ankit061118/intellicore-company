@@ -445,53 +445,6 @@ curl -X POST http://localhost:5000/api/contact \
   }'
 ```
 
-## Deployment considerations
-
-This project is structured so the frontend and backend can be deployed independently:
-
-- Frontend: static Vite build or hosting platform such as Vercel, Netlify, or a CDN-backed static provider
-- Backend: Node.js hosting environment such as Render, Railway, Fly.io, or a container platform
-- Database: MongoDB Atlas or a self-hosted MongoDB instance
-
-When deploying, ensure:
-
-- `VITE_API_URL` points to the production backend
-- the backend `CLIENT_URL` matches the frontend origin
-- `MONGO_URI` is configured in production
-- CORS is updated for the production domain
-
-## Security and validation
-
-The server is intentionally validating incoming contact payloads before saving them to MongoDB. This includes:
-
-- strict field allowlisting
-- type checking
-- email verification
-- string length limits
-- rejection of unknown keys
-- trimming of submitted values
-
-This helps reduce malformed or malicious data from reaching the database.
-
-## Potential future enhancements
-
-The current codebase is well structured for extension. Potential next steps could include:
-
-- admin dashboard for project management
-- authentication for internal content updates
-- CMS integration
-- file upload for project imagery
-- automated email notifications for incoming inquiries
-- analytics, SEO metadata, and sitemap generation
-- deployment pipelines and CI/CD
-
-## Notes
-
-- The design is presentation-heavy and brand-driven, with a polished visual system
-- The project uses a concept-driven portfolio rather than a real production customer dataset
-- The contact endpoint is a working lead capture system, ready to connect to a real database and CRM workflow
-- The project is intentionally split between static frontend content and dynamic data-backed backend endpoints
-
 ## Quick start summary
 
 ```bash
@@ -514,9 +467,7 @@ Then open:
 http://localhost:5173
 ```
 
-## License
 
-This project does not appear to include a custom license file in the repository snapshot. If this is meant for production or distribution, add an explicit license (such as MIT) before publishing or sharing externally.
 
 ## Conclusion
 
