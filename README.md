@@ -372,6 +372,9 @@ The client uses a simple but clear component structure:
 - `layouts/` — page shell wrappers
 - `styles/` — global visual system and theme tokens
 
+### State management
+The frontend does not use Redux or React Context for application state. It uses React's local `useState` hook for page- and component-level state, including project loading/filter/search state, contact form values and validation, and the navigation menu state. This keeps state close to the UI that owns and updates it.
+
 ### Server architecture
 The backend is kept modular and is organized around:
 
@@ -410,40 +413,141 @@ The project portfolio is backed by dynamic arrays and API content, including con
 
 These concepts cover fintech, e-commerce, AI, productivity, property systems, and personal finance experiences.
 
-## API usage examples
+## Testing the API with Postman
 
-### Health check
+Start the backend and make sure MongoDB is available before sending requests. In Postman, create an environment with:
 
-```bash
-curl http://localhost:5000/api/health
+| Variable | Initial value |
+| --- | --- |
+| `baseUrl` | `http://localhost:5000` |
+
+Use the selected environment for the requests below. For JSON requests, set **Body → raw → JSON**; Postman will send `Content-Type: application/json`. All API routes are under `{{baseUrl}}/api`.
+
+### API route checklist
+
+| Method | URL | Purpose | Success status |
+| --- | --- | --- | --- |
+| `GET` | `{{baseUrl}}/api/health` | Check API and MongoDB connection | `200` when connected |
+| `GET` | `{{baseUrl}}/api/projects` | List projects | `200` |
+| `GET` | `{{baseUrl}}/api/projects/finova` | Get a project by slug (replace `finova` with a slug present in your database) | `200` |
+| `POST` | `{{baseUrl}}/api/contact` | Submit a contact request | `201` |
+
+### 1. Health check
+
+**Request:** `GET {{baseUrl}}/api/health`
+
+No request body is needed. When MongoDB is connected, expect `200 OK`:
+
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "timestamp": "2026-10-07T00:00:00.000Z"
+}
 ```
 
-### List projects
+If the database connection drops after the server starts, the endpoint returns `503 Service Unavailable` with `"status": "unavailable"` and `"database": "disconnected"`.
 
-```bash
-curl http://localhost:5000/api/projects
+### 2. List projects
+
+**Request:** `GET {{baseUrl}}/api/projects`
+
+No request body is needed. Expect `200 OK` with the projects sorted with featured items first and newest items next:
+
+```json
+{
+  "success": true,
+  "count": 1,
+  "data": [
+    {
+      "title": "Finova",
+      "slug": "finova"
+    }
+  ]
+}
 ```
 
-### Get one project by slug
+The `data` array contains the full project documents; the example above is shortened to show the response shape.
 
-```bash
-curl http://localhost:5000/api/projects/finova
+### 3. Get a project by slug
+
+**Request:** `GET {{baseUrl}}/api/projects/finova`
+
+Replace `finova` with the slug of a project in your database. Expect `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "title": "Finova",
+    "slug": "finova"
+  }
+}
 ```
 
-### Submit contact request
+The `data` object contains the full project document. A slug that does not match a project returns `404 Not Found`:
 
-```bash
-curl -X POST http://localhost:5000/api/contact \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "company": "Example Studio",
-    "service": "Web Development",
-    "budget": "$20k - $50k",
-    "message": "We need a polished product website and custom app experience."
-  }'
+```json
+{
+  "success": false,
+  "message": "Project not found"
+}
 ```
+
+### 4. Submit a contact request
+
+**Request:** `POST {{baseUrl}}/api/contact`
+
+Set **Body → raw → JSON** and send:
+
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "phone": "+1 555 010 0200",
+  "company": "Example Studio",
+  "service": "Web Development",
+  "budget": "$20k - $50k",
+  "message": "We need a polished product website and custom app experience."
+}
+```
+
+`name`, `email`, and `message` are required. The other fields are optional and may be omitted or sent as empty strings. All supplied values must be strings. The API trims values, validates the email and optional phone, and rejects unknown fields. Field length limits are: name 100, email 254, phone 30, company 160, service 120, budget 80, and message 5000 characters. Name must contain at least 2 characters and message at least 10.
+
+Expect `201 Created`:
+
+```json
+{
+  "success": true,
+  "message": "Contact request received",
+  "data": {
+    "id": "created-contact-id"
+  }
+}
+```
+
+### Contact validation checks
+
+Use the same `POST {{baseUrl}}/api/contact` route to verify error handling. Each invalid request should return `400 Bad Request` with `"success": false` and a descriptive `"message"`:
+
+| Check | Example change to the valid JSON | Expected message |
+| --- | --- | --- |
+| Missing/short name | Set `"name": "J"` | `Name must be at least 2 characters` |
+| Missing/invalid email | Remove `email` or set `"email": "not-an-email"` | `A valid email address is required` |
+| Missing/short message | Set `"message": "Short"` | `Message must be at least 10 characters` |
+| Invalid phone | Set `"phone": "abc"` | `Phone number is invalid` |
+| Non-string field | Set `"name": 123` | `name must be a string` |
+| Unknown field | Add `"subject": "Hello"` | `Unknown field: subject` |
+| Field over its limit | Send a `name` longer than 100 characters | `name must be 100 characters or fewer` |
+| Non-object body | Send a JSON array instead of an object | `Request body must be a JSON object` |
+
+In development, error responses can additionally contain an `"error"` property with the error type. In production, that property is omitted.
+
+### Unknown route check
+
+**Request:** `GET {{baseUrl}}/api/unknown`
+
+Expect `404 Not Found` with a JSON error response whose message identifies the requested method and path. Only the routes listed above are implemented; there are no project-create, project-update, or project-delete endpoints.
 
 ## Quick start summary
 
