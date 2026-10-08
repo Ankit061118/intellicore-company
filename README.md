@@ -1,5 +1,8 @@
 # Intellicore Company
 
+# Vercel Link
+https://intellicore-company.vercel.app/
+
 A full-stack digital agency and product studio website built with React on the frontend and Express + MongoDB on the backend. The project presents a polished brand experience for a fictional consultancy called Nexora Labs, with services, case studies, project filtering/search, and a working contact form that persists submissions in MongoDB.
 
 This repository contains the complete implementation for the web platform and its API layer.
